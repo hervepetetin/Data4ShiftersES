@@ -1,13 +1,23 @@
 # exec(open('./top_carbonbudget.py').read())
 
 # user-defined input parameters
-recompute = True #False
+#---------------------------------------------------------------
+# (whether to recompute everything or to read the data already prepared and saved into netcdf file)
+recompute = False
+# (whether to print messages)
 verbose = True
+# (suffix to add to output file names)
 suffix = ''
+# (start/end, format:YYYYMMDDHH, need to start/end at 0h/23h)
 time1 = '1990010100' ; time2 = '2020123123'
+# (space-separated plots you request)
 toplot = 'timeseries timeseriespersector'
+# (path where to save the output netcdf files)
 path_data = '../data/carbonbudget'
+# (path where to save the output plot files)
 path_figures = '../figures/carbonbudget'
+#---------------------------------------------------------------
+
 
 # load libraries
 import datetime
@@ -82,10 +92,11 @@ else:
 	# save to netcdf
 	ds.to_netcdf(fn_save)
 
+
 # loop on requested plots
 if verbose: print('| Plot')
 for plot in toplot.split(' '):
-	print(plot)
+	if verbose: print('| Plot {}...'.format(plot))
 
 	if plot=='timeseries':
 		for what in ['GHG','CO2']:
@@ -126,7 +137,8 @@ for plot in toplot.split(' '):
 				ax.yaxis.set_major_locator(plt.MaxNLocator(8))	
 	
 			pdf_pages.savefig(fig) ; plt.close('all')                                                                   
-			plt.close('all') ; pdf_pages.close() ; print(plotfile)   
+			plt.close('all') ; pdf_pages.close() 
+			if verbose: print('|     {} generated'.format(plotfile))
 
 	elif plot=='timeseriespersector':
 		for what in ['GHG','CO2']:
@@ -168,7 +180,8 @@ for plot in toplot.split(' '):
 					ax.tick_params(axis='x', labelrotation=45)
 	
 				pdf_pages.savefig(fig) ; plt.close('all')                                                                   
-			plt.close('all') ; pdf_pages.close() ; print(plotfile)   
+			plt.close('all') ; pdf_pages.close()
+			if verbose: print('|     {} generated'.format(plotfile))
 
 
 

@@ -11,8 +11,7 @@ suffix = ''
 # (start/end, format:YYYYMMDDHH, need to start/end at 0h/23h)
 time1 = '2011010100' ; time2 = '2021123123' 
 # (space-separated plots you request)
-toplot = 'contribution_ccaa_per_gtype generation_per_ccaa' 
-#toplot = 'generation_per_ccaa'
+toplot = 'contribution_ccaa_per_gtype generation_per_ccaa demand_per_ccaa' 
 toplot = 'demand_per_ccaa'
 # (path where to save the output netcdf files)
 path_data = '../data/electricity'
