@@ -1,14 +1,24 @@
 # exec(open('./top_electricity.py').read())
 
 # user-defined input parameters
+#---------------------------------------------------------------
+# (whether to recompute everything or to read the data already prepared and saved into netcdf file)
 recompute = False
+# (whether to print messages)
 verbose = True
+# (suffix to add to output file names)
 suffix = ''
-time1 = '2011010100' ; time2 = '2021123123'
-toplot = 'contribution_ccaa_per_gtype generation_per_ccaa'
-toplot = 'generation_per_ccaa'
+# (start/end, format:YYYYMMDDHH, need to start/end at 0h/23h)
+time1 = '2011010100' ; time2 = '2021123123' 
+# (space-separated plots you request)
+toplot = 'contribution_ccaa_per_gtype generation_per_ccaa' 
+#toplot = 'generation_per_ccaa'
+toplot = 'demand_per_ccaa'
+# (path where to save the output netcdf files)
 path_data = '../data/electricity'
+# (path where to save the output plot files)
 path_figures = '../figures/electricity'
+#---------------------------------------------------------------
 
 # load libraries
 import datetime
@@ -89,7 +99,7 @@ else:
 # loop on requested plots
 if verbose: print('| Plot')
 for plot in toplot.split(' '):
-	print(plot)
+	if verbose: print('| Plot {}...'.format(plot))
 	
 	if plot=='contribution_ccaa_per_gtype':	
 		values = ds.ygeneration.sel(ccaa='Peninsula').mean('ytime').values
@@ -135,9 +145,10 @@ for plot in toplot.split(' '):
 			fig.legend(handles, labels, loc='upper center',fontsize=fontsize*0.6,ncol=3) 
 	
 			pdf_pages.savefig(fig) ; plt.close('all')                                                                   
-		plt.close('all') ; pdf_pages.close() ; print(plotfile)   
-  
-
+		plt.close('all') ; pdf_pages.close() 
+		if verbose: print('|     {} generated'.format(plotfile))
+	
+	
 	elif plot=='generation_per_ccaa':
 		
 		plotfile = '{}/{}_{}_{}{}.pdf'.format(path_figures,plot,time1,time2,suffix)		
@@ -206,78 +217,41 @@ for plot in toplot.split(' '):
 			fig.legend(handles, labels, loc='upper center',fontsize=fontsize*0.6,ncol=2) 
 	
 			pdf_pages.savefig(fig) ; plt.close('all')                                                                   
-		plt.close('all') ; pdf_pages.close() ; print(plotfile)   
-  
-	elif plot=='demand_per_ccaa':
-		# load dataset
-		fn_save = './data_{}_{}_{}.nc'.format(time1,time2,nccaa)
-		ds = xr.open_dataset(fn_save)
-		ds.close()
+		plt.close('all') ; pdf_pages.close() 
+		if verbose: print('|     {} generated'.format(plotfile))
 
-		plotfile = './plot_{}.pdf'.format(plot)
+
+	elif plot=='demand_per_ccaa':
+		plotfile = '{}/{}_{}_{}{}.pdf'.format(path_figures,plot,time1,time2,suffix)		
 		pdf_pages = PdfPages(plotfile)
 		fontsize,markersize = 14,8
 		marker = dict(zip(ds.gtype.values,list(Line2D.markers.keys())[:ds.dims['gtype']]))
-
-		values = ds.ygeneration.sum('ccaa').mean('ytime').values
-		gtype_toplot = ds.gtype.values[np.where(values/np.nansum(values)*100 > 1)]
-
-		values = ds.ygeneration.sel(gtype='Total generation').mean('ytime').values
-		ccaa_toplot = ds.ccaa.values[np.argsort(values)[::-1]]#[:3]
-
-		norm = mcols.PowerNorm(gamma=1, vmin=0, vmax=len(gtype_toplot)-1)
-		cmap = plt.cm.get_cmap('viridis',15)  
-
-		for igtype,gtype in enumerate(ds.gtype.values):
-			values_total = ds.dgeneration.sel(gtype='Total generation',ccaa='Peninsula').sum('dtime').values
-			values = ds.dgeneration.sel(gtype=gtype,ccaa='Peninsula').sum('dtime').values
-			print('{:>25s} {:10.0f} {:10.0f}%'.format(gtype,values,values/values_total*100))
-	
-		for ccaa in ccaa_toplot:
-			fig, axarr = plt.subplots(4,1,figsize=(8,8),sharex=True)
-			fig.subplots_adjust(bottom=0.1, top=0.8, left=0.2, right=0.95, hspace=0.3, wspace=0.5)
-			for ipanel in range(4):
-				ax = axarr.flatten()[ipanel]
-				for igtype,gtype in enumerate(gtype_toplot):
-
-					ts='y' if ipanel<2 else 'm'
-					if ipanel in [0,2]:
-						ax.set_ylabel('Generation\n(GWh/{})'.format({'a':'year','m':'month','d':'day'}[ts]), fontsize=fontsize)                                                                                            
-						values = ds['{}generation'.format(ts)].sel(gtype=gtype,ccaa=ccaa).values
-					elif ipanel in [1,3]:
-						ax.set_ylabel('(%)', fontsize=fontsize)                                                                                            
-						values_peninsula = ds['{}generation'.format(ts)].sel(gtype=gtype,ccaa='Peninsula').values
-						values = ds['{}generation'.format(ts)].sel(gtype=gtype,ccaa=ccaa).values/values_peninsula*100
-				
-					if gtype=='Total generation': continue
-					alpha = 0.5
+		ccaa_toplot = ds.ccaa.values 
+		norm = mcols.PowerNorm(gamma=1, vmin=0, vmax=len(ccaa_toplot)-1)
+		cmap = plt.cm.get_cmap('viridis',len(ccaa_toplot)) 
+		
+		ts_mode_list = np.array(np.meshgrid(['y','m'],['absolute','relative'])).T.reshape(-1,2)
+		for (ts,mode) in ts_mode_list:
+			fig, axarr = plt.subplots(4,5,figsize=(12,9),sharex=True)
+			fig.subplots_adjust(bottom=0.1, top=0.9, left=0.11, right=0.95, hspace=0.6, wspace=0.5)
 			
-					values_peninsula = ds.ygeneration.sel(gtype=gtype,ccaa='Peninsula').values
-					values_ccaa_vs_peninsula = ds.ygeneration.sel(gtype=gtype,ccaa=ccaa).values/values_peninsula*100
-					values_ccaa_total = ds.ygeneration.sel(gtype='Total generation',ccaa=ccaa).values
-					values_ccaa_vs_ccaa = ds.ygeneration.sel(gtype=gtype,ccaa=ccaa).values/values_ccaa_total*100
-			
-					label = '{} ({:0.0f}%|{:0.0f}%|{:0.0f}% ; {:0.0f}%|{:0.0f}%|{:0.0f}%)'.format(gtype,
-							np.nanmean(values_ccaa_vs_ccaa),values_ccaa_vs_ccaa[0],values_ccaa_vs_ccaa[-1],
-							np.nanmean(values_ccaa_vs_peninsula),values_ccaa_vs_peninsula[0],values_ccaa_vs_peninsula[-1])
-					if ts=='y': ax.plot(ds['{}time'.format(ts)],values,'{}-'.format(marker[gtype]),color=cmap(norm(igtype)),label=label,markersize=markersize,alpha=alpha)
-					if ts=='m': ax.plot(ds['{}time'.format(ts)],values,'{}-'.format(marker[gtype]),color=cmap(norm(igtype)),label=label,markersize=markersize*0.2,alpha=alpha)
-
-					if ipanel==0:
-						ccaa_mean = ds.ygeneration.sel(gtype='Total generation',ccaa=ccaa).mean('ytime').values
-						total_mean = ds.ygeneration.sel(gtype='Total generation',ccaa='Peninsula').mean('ytime').values
-						ccaa_percentage = np.nanmean(ccaa_mean/total_mean*100)
-						title = '{}\n(mean={:0.0f}GWh/year; {:0.0f}%)'.format(ccaa,ccaa_mean,ccaa_percentage)
-						ax.set_title(title,fontsize=fontsize)
-						handles, labels = ax.get_legend_handles_labels()
-				
-				ax.set_xlim([ds['{}time'.format(ts)][0],ds['{}time'.format(ts)][-1]])
-				ax.set_axisbelow(True) ; ax.grid(color='lightgrey',linewidth=0.5) 
-				ax.tick_params(axis='both', which='major', labelsize=fontsize) 
-				ax.tick_params(axis='x', labelrotation=45)
-				ax.yaxis.set_major_locator(plt.MaxNLocator(8))	
-	
-			fig.legend(handles, labels, loc='upper center',fontsize=fontsize*0.6,ncol=2) 
+			if mode=='absolute' : denominator = 1.
+			if mode=='relative' : denominator = ds['{}demand'.format(ts)].sel(ccaa='Peninsula').values/100.
+			for iccaa,ccaa in enumerate(ccaa_toplot):
+					ax = axarr.flatten()[iccaa]
+					ax.plot(ds['{}time'.format(ts)].values,
+								ds['{}demand'.format(ts)].sel(ccaa=ccaa).values/denominator,color=cmap(norm(iccaa)))
+					print([ccaa,np.nanmean(ds['{}demand'.format(ts)].sel(ccaa=ccaa).values)])
+					ax.set_title(pylib.SeparateOnSeveralLines(ccaa,nmax=15,sep=' '),fontsize=fontsize)
+					ax.set_xlim([ds['{}time'.format(ts)][0],ds['{}time'.format(ts)][-1]])
+					ax.set_axisbelow(True) ; ax.grid(color='lightgrey',linewidth=0.5) 
+					ax.tick_params(axis='both', which='major', labelsize=fontsize*0.8) 
+					ax.tick_params(axis='x', labelrotation=90)
+					ax.yaxis.set_major_locator(plt.MaxNLocator(6))	
+			unit = {'absolute':'GWh/{}'.format({'y':'year','m':'month'}[ts]),'relative':'%'}[mode]
+			plt.text(0.02, 0.5, 'Electricity demand ({})'.format(unit), 
+				fontsize=fontsize, ha='center',va='center', transform=plt.gcf().transFigure, rotation=90)
 	
 			pdf_pages.savefig(fig) ; plt.close('all')                                                                   
-		plt.close('all') ; pdf_pages.close() ; print(plotfile)   
+		plt.close('all') ; pdf_pages.close()
+		if verbose: print('|     {} generated'.format(plotfile))
