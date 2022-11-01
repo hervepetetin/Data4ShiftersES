@@ -7,12 +7,14 @@ Python scripts for preprocessing and plotting data of interest for the Shifters 
 One directory per type of data used:
 - **electricity** : electricity open-data from Red Electrica Española (REE)
 (https://www.ree.es/es/apidatos). Currently, the script handles electricity generation and demand data.
-- **greenhouse gases emissions** : greenhouse gases emissions of Spain, from MITECO
+- **carbonbudget** : greenhouse gases emissions of Spain, from MITECO
 (Tabla resumen de emisiones. Ed. 2022-Inventario Nacional;
 https://www.miteco.gob.es/es/calidad-y-evaluacion-ambiental/temas/sistema-espanol-de-inventario-sei-/Inventario-GEI.aspx)
 and World Bank (https://data.worldbank.org/country/spain?view=chart).
 
 The `data` directory includes the netcdf files where are stored the preprocessed data.
+It also includes so-called "raw" datasets that cannot be directly download from the
+python scripts and are thus saved manually.
 The `figures` directory includes the plot PDFs generated.
 The `pylib` directory includes some generic functions useful for the different analysis
 (used as an additional python library). The other directories correspond to the analysis
